@@ -39,11 +39,15 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.database.*
 import com.project.pertemuan3.ui.theme.Pertemuan3Theme
 
+// Tambahan fields: rarity, height, width
 data class Fish(
     var name: String = "",
     var map: String = "",
     var price: String = "",
-    var photo: String = ""
+    var photo: String = "",
+    var rarity: String = "",
+    var height: String = "",
+    var width: String = ""
 )
 
 class MainActivity : ComponentActivity() {
@@ -77,6 +81,11 @@ fun FirebaseInputScreen() {
     var mapField by remember { mutableStateOf(TextFieldValue("")) }
     var priceField by remember { mutableStateOf(TextFieldValue("")) }
     var photoBase64 by remember { mutableStateOf("") }
+
+    // new fields
+    var rarityField by remember { mutableStateOf(TextFieldValue("")) }
+    var heightField by remember { mutableStateOf(TextFieldValue("")) }
+    var widthField by remember { mutableStateOf(TextFieldValue("")) }
 
     var loading by remember { mutableStateOf(true) }
 
@@ -114,6 +123,9 @@ fun FirebaseInputScreen() {
                     mapField = TextFieldValue("")
                     priceField = TextFieldValue("")
                     photoBase64 = ""
+                    rarityField = TextFieldValue("")
+                    heightField = TextFieldValue("")
+                    widthField = TextFieldValue("")
                     editId = null
                     currentScene = "form"
                 },
@@ -165,42 +177,65 @@ fun FirebaseInputScreen() {
                         Card(
                             shape = RoundedCornerShape(16.dp),
                             elevation = CardDefaults.cardElevation(4.dp),
-                            modifier = Modifier.height(280.dp)
+                            modifier = Modifier.height(320.dp) // sedikit lebih tinggi utk ruang H/W
                         ) {
                             Column {
-                                // 🔒 Aman dari crash bitmap null
-                                val imageBitmap = remember(fish.photo) {
-                                    if (fish.photo.isNotEmpty()) {
-                                        try {
-                                            val bytes = Base64.decode(fish.photo, Base64.DEFAULT)
-                                            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                            bitmap?.asImageBitmap()
-                                        } catch (e: Exception) {
-                                            null
-                                        }
-                                    } else null
-                                }
+                                // Image area with rarity badge on top-right inside image
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(140.dp)
+                                ) {
+                                    val imageBitmap = remember(fish.photo) {
+                                        if (fish.photo.isNotEmpty()) {
+                                            try {
+                                                val bytes = Base64.decode(fish.photo, Base64.DEFAULT)
+                                                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                                bitmap?.asImageBitmap()
+                                            } catch (e: Exception) {
+                                                null
+                                            }
+                                        } else null
+                                    }
 
-                                if (imageBitmap != null) {
-                                    Image(
-                                        bitmap = imageBitmap,
-                                        contentDescription = fish.name,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(120.dp)
-                                            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                                    )
-                                } else {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.image_header),
-                                        contentDescription = fish.name,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(120.dp)
-                                            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                                    )
+                                    if (imageBitmap != null) {
+                                        Image(
+                                            bitmap = imageBitmap,
+                                            contentDescription = fish.name,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                                        )
+                                    } else {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.image_header),
+                                            contentDescription = fish.name,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                                        )
+                                    }
+
+                                    // Rarity badge (pojok kanan atas di dalam gambar)
+                                    if (!fish.rarity.isNullOrEmpty()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(bottomStart = 8.dp),
+                                            color = Color(0xAA000000),
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(8.dp)
+                                        ) {
+                                            Text(
+                                                text = fish.rarity,
+                                                color = Color.White,
+                                                modifier = Modifier
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                    }
                                 }
 
                                 Divider(color = Color.LightGray, thickness = 1.dp)
@@ -216,6 +251,22 @@ fun FirebaseInputScreen() {
                                     Text("Rp ${fish.price}", fontSize = 14.sp, color = Color(0xFF00796B))
 
                                     Spacer(Modifier.height(8.dp))
+
+                                    // Height & Width sejajar horizontal, center
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(text = "H: ${if (fish.height.isNullOrEmpty()) "-" else fish.height}", fontSize = 13.sp)
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Text(text = "W: ${if (fish.width.isNullOrEmpty()) "-" else fish.width}", fontSize = 13.sp)
+                                    }
+
+                                    Spacer(Modifier.height(12.dp))
+
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
@@ -227,6 +278,9 @@ fun FirebaseInputScreen() {
                                                 mapField = TextFieldValue(fish.map)
                                                 priceField = TextFieldValue(fish.price)
                                                 photoBase64 = fish.photo
+                                                rarityField = TextFieldValue(fish.rarity)
+                                                heightField = TextFieldValue(fish.height)
+                                                widthField = TextFieldValue(fish.width)
                                                 currentScene = "form"
                                             },
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
@@ -280,13 +334,18 @@ fun FirebaseInputScreen() {
                     Column(
                         modifier = Modifier
                             .padding(20.dp)
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text("Form Data Ikan", fontSize = 18.sp, color = Color.Black)
                         UnderlineTextField(namaField, { namaField = it }, "Nama Ikan")
                         UnderlineTextField(mapField, { mapField = it }, "Map")
                         UnderlineTextField(priceField, { priceField = it }, "Harga", keyboardType = KeyboardType.Number)
+                        // new: height & width (horizontal in form would be fine, but using stacked inputs to keep simple)
+                        UnderlineTextField(heightField, { heightField = it }, "Height (cm)", keyboardType = KeyboardType.Number)
+                        UnderlineTextField(widthField, { widthField = it }, "Width (cm)", keyboardType = KeyboardType.Number)
+                        UnderlineTextField(rarityField, { rarityField = it }, "Rarity (misal: ★★★★☆ atau Epic)")
 
                         Button(
                             onClick = { launcher.launch("image/*") },
@@ -326,7 +385,10 @@ fun FirebaseInputScreen() {
                                         name = namaField.text,
                                         map = mapField.text,
                                         price = priceField.text,
-                                        photo = photoBase64
+                                        photo = photoBase64,
+                                        rarity = rarityField.text,
+                                        height = heightField.text,
+                                        width = widthField.text
                                     )
                                     if (editId != null) dbRef.child(editId!!).setValue(fish)
                                     else dbRef.push().setValue(fish)
